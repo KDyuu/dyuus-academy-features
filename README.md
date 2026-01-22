@@ -31,6 +31,3 @@ le mod génère un fichier json pour modifier le contenue du shop dans le dossie
 
 ## Me contacter :
 - Discord : kdyuu
-
-Licence
-MIT License - Free to use, modify and distribute.
