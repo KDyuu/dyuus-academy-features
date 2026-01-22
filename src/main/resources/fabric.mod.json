@@ -1,0 +1,43 @@
+{
+	"schemaVersion": 1,
+	"id": "dyuus-academy-features",
+	"version": "${version}",
+	"name": "Dyuu's Academy Features",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/dyuus-academy-features/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "com.dyuus.academy_features.DyuusAcademyFeatures"
+			}
+		],
+		"client": [
+			{
+				"value": "com.dyuus.academy_features.DyuusAcademyFeaturesClient"
+			}
+		]
+	},
+	"mixins": [
+		"dyuus-academy-features.mixins.json",
+		{
+			"config": "dyuus-academy-features.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.1",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*"
+	}
+}
