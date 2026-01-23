@@ -13,7 +13,7 @@ public class TeraConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance()
             .getConfigDir()
-            .resolve("dyuus-tera-config.json");
+            .resolve("dyuus-academy-features/dyuus-tera-config.json");
 
     private static TeraConfig config;
 

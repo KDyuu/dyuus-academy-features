@@ -1,8 +1,10 @@
 package com.dyuus.academy_features;
 
+import com.dyuus.academy_features.cobblemon.PokedexRewardHandler;
 import com.dyuus.academy_features.command.PokeDollarsCommand;
 import com.dyuus.academy_features.command.ShopCommand;
 import com.dyuus.academy_features.command.TeraCommand;
+import com.dyuus.academy_features.config.PokedexRewardConfig;
 import com.dyuus.academy_features.config.ShopConfigManager;
 import com.dyuus.academy_features.config.TeraConfigManager;
 import com.dyuus.academy_features.currency.CurrencyManager;
@@ -26,7 +28,7 @@ public class DyuusAcademyFeatures implements ModInitializer {
 	public static final ScreenHandlerType<ShopScreenHandler> SHOP_SCREEN_HANDLER =
 			Registry.register(
 					Registries.SCREEN_HANDLER,
-					id("shop"),  // ✅ Utilise id() au lieu de "academy_features"
+					id("shop"),
 					new ExtendedScreenHandlerType<>(
 							ShopScreenHandler::new,
 							ShopScreenHandler.Data.PACKET_CODEC
@@ -36,7 +38,7 @@ public class DyuusAcademyFeatures implements ModInitializer {
 	public static final ScreenHandlerType<TeraScreenHandler> TERA_SCREEN_HANDLER =
 			Registry.register(
 					Registries.SCREEN_HANDLER,
-					id("tera"),  // ✅ Utilise id()
+					id("tera"),
 					new ExtendedScreenHandlerType<>(
 							TeraScreenHandler::new,
 							TeraScreenHandler.Data.PACKET_CODEC
@@ -48,18 +50,28 @@ public class DyuusAcademyFeatures implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Initializing Dyuu's Academy Features");
 
+		// ==================== Configuration ====================
 		ShopConfigManager.initialize();
 		CurrencyManager.initialize();
 		TeraConfigManager.initialize();
 
+		// Initialize Pokedex reward configuration
+		PokedexRewardConfig.initialize();
+
+		// ==================== Networking ====================
 		ShopNetworking.registerPackets();
 		ShopNetworking.registerServerReceivers();
 		TeraNetworking.registerPackets();
 		TeraNetworking.registerServerReceivers();
 
+		// ==================== Commands ====================
 		ShopCommand.register();
 		PokeDollarsCommand.register();
 		TeraCommand.register();
+
+		// ==================== Cobblemon Integration ====================
+		// Initialize the Pokedex reward handler to listen for new catches
+		PokedexRewardHandler.initialize();
 
 		LOGGER.info("Dyuu's Academy Features initialized successfully");
 	}
