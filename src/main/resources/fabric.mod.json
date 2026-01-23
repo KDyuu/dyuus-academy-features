@@ -3,9 +3,9 @@
 	"id": "dyuus-academy-features",
 	"version": "${version}",
 	"name": "Dyuu's Academy Features",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Features and Compatibilities for Dyuu's Cobblemon Academy",
 	"authors": [
-		"Me!"
+		"KDyuu"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
