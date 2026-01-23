@@ -22,10 +22,12 @@ public class ShopCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("shop")
                     // /shop → ouvrir le shop pour soi-même
+                    .requires(source -> source.hasPermissionLevel(2))
                     .executes(ShopCommand::openShop)
 
                     // /shop <joueur> → ouvrir le shop pour un joueur spécifique (avec @s)
                     .then(CommandManager.argument("target", EntityArgumentType.player())
+                            .requires(source -> source.hasPermissionLevel(2))
                             .executes(ShopCommand::openShopForTarget)
                     )
 
