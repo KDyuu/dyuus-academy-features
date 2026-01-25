@@ -16,16 +16,16 @@ public class PokeDollarsCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("pokedollars")
-                    // /pokedollars → affiche ton solde
+                    // /pokedollars → show your balance
                     .executes(PokeDollarsCommand::checkOwnBalance)
 
-                    // /pokedollars <joueur> → affiche le solde d'un autre joueur (admin)
+                    // /pokedollars <player> → show another player's balance (admin)
                     .then(CommandManager.argument("player", EntityArgumentType.player())
                             .requires(source -> source.hasPermissionLevel(2))
                             .executes(PokeDollarsCommand::checkOtherBalance)
                     )
 
-                    // /pokedollars pay <joueur> <montant> → donner de l'argent à un joueur
+                    // /pokedollars pay <player> <amount> → pay another player
                     .then(CommandManager.literal("pay")
                             .then(CommandManager.argument("player", EntityArgumentType.player())
                                     .then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
@@ -34,12 +34,33 @@ public class PokeDollarsCommand {
                             )
                     )
 
-                    // /pokedollars set <joueur> <montant> → définir l'argent (admin)
+                    // /pokedollars set <player> <amount> → set player's balance (admin)
                     .then(CommandManager.literal("set")
                             .requires(source -> source.hasPermissionLevel(2))
                             .then(CommandManager.argument("player", EntityArgumentType.player())
                                     .then(CommandManager.argument("amount", IntegerArgumentType.integer(0))
                                             .executes(PokeDollarsCommand::setMoney)
+                                    )
+                            )
+                    )
+
+                    // /pokedollars add <player> <amount> → add to player's balance (admin)
+                    // This command is used by NPCs to reward players after battles
+                    .then(CommandManager.literal("add")
+                            .requires(source -> source.hasPermissionLevel(2))
+                            .then(CommandManager.argument("player", EntityArgumentType.player())
+                                    .then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
+                                            .executes(PokeDollarsCommand::addMoney)
+                                    )
+                            )
+                    )
+
+                    // /pokedollars remove <player> <amount> → remove from player's balance (admin)
+                    .then(CommandManager.literal("remove")
+                            .requires(source -> source.hasPermissionLevel(2))
+                            .then(CommandManager.argument("player", EntityArgumentType.player())
+                                    .then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
+                                            .executes(PokeDollarsCommand::removeMoney)
                                     )
                             )
                     )
@@ -93,7 +114,7 @@ public class PokeDollarsCommand {
             ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
             int amount = IntegerArgumentType.getInteger(context, "amount");
 
-            // Vérifier que le joueur ne se paye pas lui-même
+            // Check that the player is not paying themselves
             if (sender.getUuid().equals(target.getUuid())) {
                 sender.sendMessage(
                         Text.literal("Vous ne pouvez pas vous payer vous-même!")
@@ -103,7 +124,7 @@ public class PokeDollarsCommand {
                 return 0;
             }
 
-            // Vérifier que le sender a assez d'argent
+            // Check that the sender has enough money
             int senderBalance = CurrencyManager.getBalance(sender);
             if (senderBalance < amount) {
                 sender.sendMessage(
@@ -161,6 +182,89 @@ public class PokeDollarsCommand {
             target.sendMessage(
                     Text.literal("Votre solde a été défini à " + amount + " PokéDollars")
                             .formatted(Formatting.GOLD),
+                    false
+            );
+
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Add money to a player's balance.
+     * Used by NPCs to reward players after winning battles.
+     * Command: /pokedollars add <player> <amount>
+     */
+    private static int addMoney(CommandContext<ServerCommandSource> context) {
+        try {
+            ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+            int amount = IntegerArgumentType.getInteger(context, "amount");
+
+            CurrencyManager.addBalance(target, amount);
+
+            // Feedback to command executor (usually console or command block)
+            context.getSource().sendFeedback(
+                    () -> Text.literal("Ajouté " + amount + " PokéDollars à " + target.getName().getString())
+                            .formatted(Formatting.GREEN),
+                    true
+            );
+
+            // Notification to the player
+            target.sendMessage(
+                    Text.literal("Vous avez reçu ")
+                            .formatted(Formatting.GREEN)
+                            .append(Text.literal(amount + " PokéDollars")
+                                    .formatted(Formatting.GOLD))
+                            .append(Text.literal("!")
+                                    .formatted(Formatting.GREEN)),
+                    false
+            );
+
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Remove money from a player's balance.
+     * Can be used for penalties or purchases via commands.
+     * Command: /pokedollars remove <player> <amount>
+     */
+    private static int removeMoney(CommandContext<ServerCommandSource> context) {
+        try {
+            ServerPlayerEntity target = EntityArgumentType.getPlayer(context, "player");
+            int amount = IntegerArgumentType.getInteger(context, "amount");
+
+            int currentBalance = CurrencyManager.getBalance(target);
+
+            if (currentBalance < amount) {
+                context.getSource().sendFeedback(
+                        () -> Text.literal("Impossible: " + target.getName().getString() + " n'a que " + currentBalance + " PokéDollars")
+                                .formatted(Formatting.RED),
+                        false
+                );
+                return 0;
+            }
+
+            CurrencyManager.removeBalance(target, amount);
+
+            // Feedback to command executor
+            context.getSource().sendFeedback(
+                    () -> Text.literal("Retiré " + amount + " PokéDollars de " + target.getName().getString())
+                            .formatted(Formatting.YELLOW),
+                    true
+            );
+
+            // Notification to the player
+            target.sendMessage(
+                    Text.literal("On vous a retiré ")
+                            .formatted(Formatting.RED)
+                            .append(Text.literal(amount + " PokéDollars")
+                                    .formatted(Formatting.GOLD))
+                            .append(Text.literal(".")
+                                    .formatted(Formatting.RED)),
                     false
             );
 

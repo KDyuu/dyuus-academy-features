@@ -7,6 +7,7 @@ import com.dyuus.academy_features.command.TeraCommand;
 import com.dyuus.academy_features.config.PokedexRewardConfig;
 import com.dyuus.academy_features.config.ShopConfigManager;
 import com.dyuus.academy_features.config.TeraConfigManager;
+import com.dyuus.academy_features.config.TeraItemConfig;
 import com.dyuus.academy_features.currency.CurrencyManager;
 import com.dyuus.academy_features.network.ShopNetworking;
 import com.dyuus.academy_features.network.TeraNetworking;
@@ -54,6 +55,7 @@ public class DyuusAcademyFeatures implements ModInitializer {
 		ShopConfigManager.initialize();
 		CurrencyManager.initialize();
 		TeraConfigManager.initialize();
+		TeraItemConfig.initializeServer();
 
 		// Initialize Pokedex reward configuration
 		PokedexRewardConfig.initialize();
