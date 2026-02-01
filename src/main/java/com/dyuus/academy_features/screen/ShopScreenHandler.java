@@ -1,6 +1,7 @@
 package com.dyuus.academy_features.screen;
 
 import com.dyuus.academy_features.DyuusAcademyFeatures;
+import com.dyuus.academy_features.config.ShopConfig;
 import com.dyuus.academy_features.config.ShopConfigManager;
 import com.dyuus.academy_features.config.ShopItem;
 import com.dyuus.academy_features.currency.CurrencyManager;
@@ -19,11 +20,13 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ShopScreenHandler extends ScreenHandler {
-    private static final int ITEMS_PER_PAGE = 27; // 9x3 grille
+    private static final int ITEMS_PER_PAGE = 27; // 9x3 grid
     private final Data data;
     private int currentPage = 0;
 
@@ -31,8 +34,8 @@ public class ShopScreenHandler extends ScreenHandler {
         super(DyuusAcademyFeatures.SHOP_SCREEN_HANDLER, syncId);
         this.data = data;
 
-        // Ajouter l'inventaire du joueur
-        // Inventaire principal (3 lignes de 9 slots)
+        // Add player inventory slots
+        // Main inventory (3 rows of 9 slots)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 this.addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 122 + row * 18));
@@ -52,7 +55,7 @@ public class ShopScreenHandler extends ScreenHandler {
 
     @Override
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
-        // Empêcher toute interaction avec les slots de l'inventaire quand on clique dans le shop
+        // Prevent interaction with inventory slots when clicking in shop
         if (slotIndex < 0 || slotIndex >= this.slots.size()) {
             super.onSlotClick(slotIndex, button, actionType, player);
         }
@@ -65,6 +68,10 @@ public class ShopScreenHandler extends ScreenHandler {
 
     public List<ShopItem> getItems() {
         return data.items;
+    }
+
+    public String getShopTitle() {
+        return data.shopTitle;
     }
 
     public int getCurrentPage() {
@@ -81,7 +88,7 @@ public class ShopScreenHandler extends ScreenHandler {
         return (data.items.size() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
     }
 
-    // Méthode appelée côté serveur pour acheter un item
+    // Server-side method to buy an item
     public boolean buyItem(ServerPlayerEntity player, int itemIndex, int quantity) {
         if (itemIndex < 0 || itemIndex >= data.items.size()) return false;
 
@@ -107,6 +114,12 @@ public class ShopScreenHandler extends ScreenHandler {
         Item item = Registries.ITEM.get(itemId);
         ItemStack stack = new ItemStack(item, quantity);
 
+        if (!shopItem.components.isEmpty()) {
+            for (Map.Entry<String, String> entry : shopItem.components.entrySet()) {
+                applyCustomComponent(stack, entry.getKey(), entry.getValue(), player);
+            }
+        }
+
         if (!player.getInventory().insertStack(stack)) {
             player.sendMessage(Text.literal("Inventaire plein!").formatted(Formatting.RED), false);
             return false;
@@ -127,7 +140,50 @@ public class ShopScreenHandler extends ScreenHandler {
         return true;
     }
 
-    // Méthode appelée côté serveur pour vendre un item
+    // NOUVELLE MÉTHODE : Applique un composant personnalisé à un ItemStack
+    @SuppressWarnings("unchecked")
+    private void applyCustomComponent(ItemStack stack, String componentKey, String componentValue, ServerPlayerEntity player) {
+        try {
+            Identifier componentId = Identifier.tryParse(componentKey);
+            if (componentId == null) {
+                DyuusAcademyFeatures.LOGGER.warn("Invalid component key: {}", componentKey);
+                return;
+            }
+
+            var componentType = Registries.DATA_COMPONENT_TYPE.get(componentId);
+            if (componentType == null) {
+                DyuusAcademyFeatures.LOGGER.warn("Component type not found: {}", componentKey);
+                return;
+            }
+
+            // Traitement spécial pour minecraft:custom_name (nécessite un Text Component)
+            if (componentKey.equals("minecraft:custom_name")) {
+                try {
+                    // Parser le JSON en Text component
+                    Text customName = Text.Serialization.fromJson(componentValue, player.getRegistryManager());
+                    if (customName != null) {
+                        stack.set((net.minecraft.component.ComponentType<Text>) componentType, customName);
+                        DyuusAcademyFeatures.LOGGER.info("Applied custom_name: {}", customName.getString());
+                    } else {
+                        DyuusAcademyFeatures.LOGGER.error("Failed to parse custom_name, got null");
+                    }
+                } catch (Exception e) {
+                    DyuusAcademyFeatures.LOGGER.error("Failed to parse custom_name JSON: {}", componentValue, e);
+                }
+            } else {
+                // Pour les autres composants (comme academy:booster_pack), on utilise le raw type
+                @SuppressWarnings("rawtypes")
+                net.minecraft.component.ComponentType rawType = componentType;
+                stack.set(rawType, componentValue);
+                DyuusAcademyFeatures.LOGGER.info("Applied component {} with value {}", componentKey, componentValue);
+            }
+
+        } catch (Exception e) {
+            DyuusAcademyFeatures.LOGGER.error("Failed to apply component {}", componentKey, e);
+        }
+    }
+
+    // Server-side method to sell an item
     public boolean sellItem(ServerPlayerEntity player, int itemIndex, int quantity) {
         if (itemIndex < 0 || itemIndex >= data.items.size()) return false;
 
@@ -188,31 +244,71 @@ public class ShopScreenHandler extends ScreenHandler {
         return true;
     }
 
-    // Record pour les données transmises au client
-    public record Data(List<ShopItem> items) {
+    // Data record for client transmission (now includes shop title)
+    public record Data(String shopTitle, List<ShopItem> items) {
         public static final PacketCodec<RegistryByteBuf, Data> PACKET_CODEC =
                 new PacketCodec<>() {
                     @Override
                     public Data decode(RegistryByteBuf buf) {
+                        // Read shop title
+                        String shopTitle = readString(buf);
+
+                        // Read items
                         int size = buf.readInt();
                         List<ShopItem> items = new ArrayList<>(size);
                         for (int i = 0; i < size; i++) {
                             items.add(ShopItem.decode(buf));
                         }
-                        return new Data(items);
+                        return new Data(shopTitle, items);
                     }
 
                     @Override
                     public void encode(RegistryByteBuf buf, Data data) {
+                        // Write shop title
+                        writeString(buf, data.shopTitle);
+
+                        // Write items
                         buf.writeInt(data.items.size());
                         for (ShopItem item : data.items) {
                             ShopItem.encode(buf, item);
                         }
                     }
+
+                    private void writeString(RegistryByteBuf buf, String str) {
+                        byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
+                        buf.writeInt(bytes.length);
+                        buf.writeBytes(bytes);
+                    }
+
+                    private String readString(RegistryByteBuf buf) {
+                        int length = buf.readInt();
+                        byte[] bytes = new byte[length];
+                        buf.readBytes(bytes);
+                        return new String(bytes, StandardCharsets.UTF_8);
+                    }
                 };
 
+        /**
+         * Creates Data from a specific ShopConfig.
+         *
+         * @param config The shop configuration
+         * @return Data for the screen handler
+         */
+        public static Data fromConfig(ShopConfig config) {
+            return new Data(config.displayName, new ArrayList<>(config.items));
+        }
+
+        /**
+         * Creates Data from the default shop (legacy support).
+         *
+         * @return Data for the screen handler
+         */
         public static Data fromConfig() {
-            return new Data(new ArrayList<>(ShopConfigManager.getConfig().items));
+            ShopConfig config = ShopConfigManager.getDefaultShop();
+            if (config == null) {
+                return new Data("Shop", new ArrayList<>());
+            }
+            return fromConfig(config);
         }
     }
 }

@@ -19,15 +19,16 @@ import java.util.List;
 public class ShopScreen extends HandledScreen<ShopScreenHandler> {
     private static final Identifier SHOP_TEXTURE = Identifier.of("dyuus-academy-features", "textures/gui/shop_background.png");
     private static final Identifier INVENTORY_TEXTURE = Identifier.ofVanilla("textures/gui/container/generic_54.png");
-    private static final int ITEMS_PER_PAGE = 27; // 9 colonnes × 3 lignes
-    private static final int SHOP_ROWS = 3; // 3 lignes d'items
+    private static final int ITEMS_PER_PAGE = 27; // 9 columns × 3 rows
+    private static final int SHOP_ROWS = 3; // 3 rows of items
 
     private ButtonWidget previousButton;
     private ButtonWidget nextButton;
 
     public ShopScreen(ShopScreenHandler handler, PlayerInventory inventory, Text title) {
-        super(handler, inventory, Text.literal("Shop"));
-        this.backgroundHeight = 107 + 96; // Shop custom + inventaire
+        // Use the shop title from the handler data instead of a static "Shop"
+        super(handler, inventory, Text.literal(handler.getShopTitle()));
+        this.backgroundHeight = 107 + 96; // Custom shop + inventory
         this.backgroundWidth = 176;
         this.playerInventoryTitleY = 107 + 4;
     }
@@ -38,8 +39,8 @@ public class ShopScreen extends HandledScreen<ShopScreenHandler> {
         this.titleX = (this.backgroundWidth - this.textRenderer.getWidth(this.title)) / 2;
         this.titleY = 6;
 
-        // Boutons plus bas (après les 3 lignes d'items)
-        // 30 (début items) + 3*18 (3 lignes) + 5 (espacement) = 89
+        // Buttons below the 3 rows of items
+        // 30 (items start) + 3*18 (3 rows) + 5 (spacing) = 89
         int buttonY = this.y + 89;
 
         this.previousButton = ButtonWidget.builder(Text.literal("◀"), button -> {
@@ -48,7 +49,7 @@ public class ShopScreen extends HandledScreen<ShopScreenHandler> {
                         handler.setCurrentPage(currentPage - 1);
                     }
                 })
-                .dimensions(this.x + 10, buttonY, 54, 14) // Hauteur réduite à 14
+                .dimensions(this.x + 10, buttonY, 54, 14)
                 .build();
         this.addDrawableChild(previousButton);
 
@@ -59,15 +60,13 @@ public class ShopScreen extends HandledScreen<ShopScreenHandler> {
                         handler.setCurrentPage(currentPage + 1);
                     }
                 })
-                .dimensions(this.x + 112, buttonY, 54, 14) // Hauteur réduite à 14
+                .dimensions(this.x + 112, buttonY, 54, 14)
                 .build();
         this.addDrawableChild(nextButton);
     }
 
     @Override
     protected void drawForeground(DrawContext context, int mouseX, int mouseY) {
-        // Méthode vide pour ne pas dessiner les titres par défaut
-        // Tu peux aussi dessiner tes propres titres personnalisés ici si tu le souhaites
     }
 
     @Override
@@ -75,10 +74,10 @@ public class ShopScreen extends HandledScreen<ShopScreenHandler> {
         int x = (this.width - this.backgroundWidth) / 2;
         int y = (this.height - this.backgroundHeight) / 2;
 
-        // Dessiner le shop custom
+        // Draw custom shop background
         context.drawTexture(SHOP_TEXTURE, x, y, 0, 0, 176, 107, 256, 256);
 
-        // Dessiner l'inventaire vanilla en dessous
+        // Draw vanilla inventory below
         context.drawTexture(INVENTORY_TEXTURE, x, y + 107, 0, 126, 176, 96);
     }
 
@@ -100,11 +99,11 @@ public class ShopScreen extends HandledScreen<ShopScreenHandler> {
         for (int i = startIndex; i < endIndex; i++) {
             ShopItem shopItem = allItems.get(i);
             int relativeIndex = i - startIndex;
-            int row = relativeIndex / 9; // 9 items par ligne
+            int row = relativeIndex / 9; // 9 items per row
             int col = relativeIndex % 9;
 
             int itemX = x + 10 + col * 18;
-            int itemY = y + 30 + row * 18; // Seulement 3 lignes
+            int itemY = y + 30 + row * 18; // Only 3 rows
 
             Identifier itemId = Identifier.tryParse(shopItem.itemId);
             if (itemId != null) {
