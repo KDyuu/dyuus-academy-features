@@ -5,6 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryByteBuf;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ShopItem {
     public String itemId;
@@ -14,6 +16,9 @@ public class ShopItem {
     public boolean canBuy;
     public boolean canSell;
     public int maxStackSize;
+
+    // NOUVEAU : Map optionnelle pour les composants personnalisés
+    public Map<String, String> components = new HashMap<>();
 
     public static final Codec<ShopItem> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
@@ -45,6 +50,13 @@ public class ShopItem {
         buf.writeBoolean(item.canBuy);
         buf.writeBoolean(item.canSell);
         buf.writeInt(item.maxStackSize);
+
+        // NOUVEAU : Encoder les composants
+        buf.writeInt(item.components.size());
+        for (Map.Entry<String, String> entry : item.components.entrySet()) {
+            writeString(buf, entry.getKey());
+            writeString(buf, entry.getValue());
+        }
     }
 
     public static ShopItem decode(RegistryByteBuf buf) {  // ← CHANGER ICI
@@ -56,6 +68,16 @@ public class ShopItem {
         item.canBuy = buf.readBoolean();
         item.canSell = buf.readBoolean();
         item.maxStackSize = buf.readInt();
+
+        // NOUVEAU : Décoder les composants
+        int componentsSize = buf.readInt();
+        item.components = new HashMap<>();
+        for (int i = 0; i < componentsSize; i++) {
+            String key = readString(buf);
+            String value = readString(buf);
+            item.components.put(key, value);
+        }
+
         return item;
     }
 

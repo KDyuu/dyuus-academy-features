@@ -4,5 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ShopConfig {
-    public List<ShopItem> items = new ArrayList<>();  // ← Plus de catégories, juste une liste d'items
+    public String shopId;           // Unique identifier (filename without .json)
+    public String displayName;      // Title shown in the GUI
+    public List<ShopItem> items = new ArrayList<>();
+
+    public ShopConfig() {}
+
+    public ShopConfig(String shopId, String displayName) {
+        this.shopId = shopId;
+        this.displayName = displayName;
+    }
 }
