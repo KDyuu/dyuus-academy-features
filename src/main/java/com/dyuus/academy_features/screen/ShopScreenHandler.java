@@ -209,6 +209,19 @@ public class ShopScreenHandler extends ScreenHandler {
             }
         }
 
+        // Resolve quantity: -1 means "sell as many as possible, capped at 64"
+        if (quantity == -1) {
+            quantity = Math.min(64, available);
+            if (quantity <= 0) {
+                player.sendMessage(
+                        Text.literal("Vous n'avez aucun " + shopItem.displayName)
+                                .formatted(Formatting.RED),
+                        false
+                );
+                return false;
+            }
+        }
+
         if (available < quantity) {
             player.sendMessage(
                     Text.literal("Vous n'avez que " + available + " " + shopItem.displayName)
