@@ -11,6 +11,7 @@ import com.dyuus.academy_features.config.TeraItemConfig;
 import com.dyuus.academy_features.currency.CurrencyManager;
 import com.dyuus.academy_features.network.ShopNetworking;
 import com.dyuus.academy_features.network.TeraNetworking;
+import com.dyuus.academy_features.rank.RankChecker;
 import com.dyuus.academy_features.screen.ShopScreenHandler;
 import com.dyuus.academy_features.screen.TeraScreenHandler;
 import net.fabricmc.api.ModInitializer;
@@ -56,6 +57,7 @@ public class DyuusAcademyFeatures implements ModInitializer {
 		CurrencyManager.initialize();
 		TeraConfigManager.initialize();
 		TeraItemConfig.initializeServer();
+		RankChecker.register();
 
 		// Initialize Pokedex reward configuration
 		PokedexRewardConfig.initialize();
